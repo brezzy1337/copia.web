@@ -22,4 +22,17 @@ export const CreatePostSchema = createInsertSchema(Post, {
   updatedAt: true,
 });
 
+export const Waitlist = pgTable("waitlist", (t) => ({
+  id: t.uuid().notNull().primaryKey().defaultRandom(),
+  email: t.varchar({ length: 256 }).notNull().unique(),
+  createdAt: t.timestamp().defaultNow().notNull(),
+}));
+
+export const CreateWaitlistSchema = createInsertSchema(Waitlist, {
+  email: z.email().max(256),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
 export * from "./auth-schema";

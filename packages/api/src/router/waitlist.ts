@@ -2,10 +2,12 @@ import type { TRPCRouterRecord } from "@trpc/server";
 
 import { CreateWaitlistSchema, Waitlist } from "@acme/db/schema";
 
+import { rateLimitMiddleware } from "../middleware/rate-limit";
 import { publicProcedure } from "../trpc";
 
 export const waitlistRouter = {
   join: publicProcedure
+    .use(rateLimitMiddleware)
     .input(CreateWaitlistSchema)
     .mutation(async ({ ctx, input }) => {
       // Idempotent: a repeat signup just succeeds. We don't error or reveal

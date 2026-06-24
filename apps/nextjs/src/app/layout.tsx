@@ -42,7 +42,7 @@ const inter = Inter({
 
 export default function RootLayout(props: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" className={inter.variable}>
       <body>
         <TRPCReactProvider>{props.children}</TRPCReactProvider>
       </body>

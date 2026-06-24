@@ -240,8 +240,8 @@ export default function HomePage() {
               <h3>A shopping list that makes sense</h3>
               <p>
                 Every item grouped by aisle — Produce, Protein, Dairy, Pantry
-                and more — with a live budget bar so you always know where you
-                stand.
+                and more — with a running budget bar so you always know where
+                you stand.
               </p>
             </div>
             <div className="fcard reveal">

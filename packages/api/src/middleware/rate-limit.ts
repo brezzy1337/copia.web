@@ -4,19 +4,16 @@ import { TRPCError } from "@trpc/server";
 import { t } from "../trpc";
 
 /**
- * Derive the client IP from forwarding headers set by Vercel's proxy.
+ * Derive the client IP for rate-limit keying.
  *
- * `x-forwarded-for` may be a comma-separated list (client, proxy1, proxy2…);
- * the left-most entry is the original client. Falls back to `x-real-ip`, then
- * to a constant key so the limiter still works (globally) if no IP is present.
+ * We use ONLY `x-real-ip`, which Vercel's edge sets from the trusted TCP
+ * connection — a client cannot forge it. We deliberately do NOT trust
+ * `x-forwarded-for`: a client can send their own `X-Forwarded-For` and Vercel
+ * appends the real IP after it, so the left-most entry is attacker-controlled
+ * and could be rotated to mint a fresh bucket per request (limit bypass).
+ * Falls back to a constant key (shared bucket) when no trusted IP is present.
  */
 function getClientIp(headers: Headers): string {
-  const forwardedFor = headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    const first = forwardedFor.split(",")[0]?.trim();
-    if (first) return first;
-  }
-
   const realIp = headers.get("x-real-ip");
   if (realIp) return realIp.trim();
 
@@ -71,13 +68,21 @@ export const rateLimitMiddleware = t.middleware(async ({ ctx, next }) => {
   if (!rl) return next();
 
   const ip = getClientIp(ctx.headers);
-  const { success } = await rl.limit(ip);
 
-  if (!success) {
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message: "Too many requests. Please try again in a few minutes.",
-    });
+  try {
+    const { success } = await rl.limit(ip);
+    if (!success) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "Too many requests. Please try again in a few minutes.",
+      });
+    }
+  } catch (err) {
+    // A genuine rate-limit rejection must propagate.
+    if (err instanceof TRPCError) throw err;
+    // Fail OPEN on limiter/Upstash failure (network, timeout, outage): never
+    // take the endpoint down because the limiter is unavailable.
+    console.error("[rate-limit] limiter unavailable, allowing request:", err);
   }
 
   return next();

@@ -22,6 +22,8 @@
     "@acme/db": "workspace:*",
     "@acme/validators": "workspace:*",
     "@trpc/server": "catalog:",
+    "@upstash/ratelimit": "catalog:",
+    "@upstash/redis": "catalog:",
     "superjson": "2.2.3",
     "zod": "catalog:"
   },
